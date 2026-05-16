@@ -1,0 +1,73 @@
+import os
+import jwt
+from datetime import datetime, timedelta, timezone
+from app.models.user import User
+from app.database.database import db
+
+class AuthService:
+    @staticmethod
+    def generate_token(user):
+        payload = {
+            "sub": str(user.id),
+            "email": user.email,
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        }
+
+        secret = os.getenv("JWT_SECRET_KEY", "change-me")
+        return jwt.encode(payload, secret, algorithm="HS256")
+
+    @staticmethod
+    def register(data):
+        email = data["email"].strip().lower()
+
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            return {
+                "success": False,
+                "message": "Email already exists"
+            }, 409
+
+        user = User(
+            first_name=data["first_name"].strip(),
+            last_name=data["last_name"].strip(),
+            email=email,
+            phone=data.get("phone")
+        )
+        user.set_password(data["password"])
+
+        db.session.add(user)
+        db.session.commit()
+
+        token = AuthService.generate_token(user)
+
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "data": {
+                "user": user.to_dict(),
+                "access_token": token
+            }
+        }, 201
+
+    @staticmethod
+    def login(data):
+        email = data["email"].strip().lower()
+        user = User.query.filter_by(email=email).first()
+
+        if not user or not user.check_password(data["password"]):
+            return {
+                "success": False,
+                "message": "Invalid email or password"
+            }, 401
+
+        token = AuthService.generate_token(user)
+
+        return {
+            "success": True,
+            "message": "Login successful",
+            "data": {
+                "user": user.to_dict(),
+                "access_token": token
+            }
+        }, 200

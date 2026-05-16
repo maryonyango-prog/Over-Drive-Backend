@@ -1,28 +1,29 @@
+import os
 from flask import Flask
 from dotenv import load_dotenv
-
-from app.config import Config
-from app.database import db
-from app.routes.vehicle_routes import vehicle_bp
+from app.database.database import db
 
 load_dotenv()
 
-
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config)
+
+    db_url = os.getenv("DATABASE_URL")
+    print("DATABASE_URL =", db_url)
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
 
-    # only vehicle routes
-    app.register_blueprint(vehicle_bp)
+
+    from app.routes.auth_routes import auth_bp
+
+    app.register_blueprint(auth_bp)
+
+    with app.app_context():
+        db.create_all()
 
     print("REGISTERED ROUTES:", app.url_map)
 
     return app
-
-
-app = create_app()
-
-if __name__ == "__main__":
-    app.run(debug=True)

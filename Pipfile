@@ -5,6 +5,12 @@ name = "pypi"
 
 [packages]
 flask = "*"
+SQLAlchemy = "*"
+python-dotenv = "*"
+psycopg2-binary = "*"
+python-jose = "*"
+passlib = {extras = ["bcrypt"], version = "*"}
+alembic = "*"
 
 [dev-packages]
 
