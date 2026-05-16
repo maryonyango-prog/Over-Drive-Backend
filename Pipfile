@@ -5,8 +5,14 @@ name = "pypi"
 
 [packages]
 flask = "*"
+SQLAlchemy = "*"
+python-dotenv = "*"
+psycopg2-binary = "*"
+python-jose = "*"
+passlib = {extras = ["bcrypt"], version = "*"}
+alembic = "*"
 
 [dev-packages]
 
-[requires]
-python_version = "3.8"
+
+python_version = "3.14"
