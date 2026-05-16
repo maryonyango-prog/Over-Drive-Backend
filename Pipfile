@@ -5,8 +5,10 @@ name = "pypi"
 
 [packages]
 flask = "*"
+pydantic = "*"
+pydantic-settings = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.8"
+python_version = "3.12"
