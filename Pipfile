@@ -7,6 +7,10 @@ name = "pypi"
 flask = "*"
 pydantic = "*"
 pydantic-settings = "*"
+fastapi = "*"
+uvicorn = "*"
+sqlalchemy = "*"
+python-multipart = "*"
 
 [dev-packages]
 

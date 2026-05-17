@@ -1,28 +1,17 @@
 """API routes for analysis endpoints."""
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from typing import Optional, List, Dict
-from pydantic import BaseModel
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from sqlalchemy.orm import Session
+from typing import List
+import shutil, os, uuid
+
+from app.database.database import get_db
+from app.analysis.services import AnalysisService
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
 
-
-class AnalysisRequest(BaseModel):
-    """Request model for analysis."""
-
-    vehicle_id: int
-    analysis_types: List[str]  # damage_detection, condition_assessment, pricing
-
-
-class AnalysisResponse(BaseModel):
-    """Response model for analysis."""
-
-    analysis_id: str
-    vehicle_id: int
-    status: str
-    results: Dict
-    confidence_score: float
-    created_at: str
+UPLOAD_DIR = "./uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/analyze-image")
@@ -30,38 +19,43 @@ async def analyze_image(
     vehicle_id: int,
     file: UploadFile = File(...),
     analysis_types: str = "damage_detection,condition_assessment",
+    db: Session = Depends(get_db),
 ):
-    """
-    Upload and analyze a vehicle image.
+    # Save uploaded image to disk
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4()}{ext}"
+    image_path = os.path.join(UPLOAD_DIR, filename)
 
-    Args:
-        vehicle_id: ID of the vehicle
-        file: Image file to analyze
-        analysis_types: Comma-separated list of analysis types
+    with open(image_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
-    Returns:
-        AnalysisResponse with results
-    """
-    # TODO: Implement image analysis logic
-    pass
+    # Run analysis and save to DB
+    service = AnalysisService(db)
+    types = [t.strip() for t in analysis_types.split(",")]
 
-
-@router.get("/analysis/{analysis_id}")
-async def get_analysis(analysis_id: str):
-    """Get analysis results by ID."""
-    # TODO: Implement get analysis logic
-    pass
+    try:
+        result = await service.create_analysis(vehicle_id, image_path, types)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/vehicle/{vehicle_id}/analyses")
-async def get_vehicle_analyses(vehicle_id: int):
-    """Get all analyses for a vehicle."""
-    # TODO: Implement get vehicle analyses logic
-    pass
+async def get_vehicle_analyses(
+    vehicle_id: int,
+    db: Session = Depends(get_db),
+):
+    service = AnalysisService(db)
+    return await service.get_vehicle_analyses(vehicle_id)
 
 
-@router.post("/generate-report/{analysis_id}")
-async def generate_report(analysis_id: str):
-    """Generate detailed report for analysis."""
-    # TODO: Implement report generation logic
-    pass
+@router.get("/analysis/{analysis_id}")
+async def get_analysis(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+):
+    service = AnalysisService(db)
+    result = await service.get_analysis(analysis_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return result
