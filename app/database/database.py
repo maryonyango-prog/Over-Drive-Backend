@@ -18,3 +18,6 @@ def get_db():
         yield db
     finally:
         db.close()
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
