@@ -1,1 +1,12 @@
-uvicorn, sqlalchemy, psycopg2-binary, python-dotenv, alembic.
+flask 
+flask-cors 
+python-dotenv 
+requests
+sqlalchemy
+psycopg2-binary
+opencv-python 
+pillow 
+tensorflow 
+gunicorn
+pydantic
+pydantic-settings
