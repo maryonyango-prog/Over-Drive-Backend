@@ -1,18 +1,29 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, Float, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.sqlite import JSON
-from app.database.database import Base
+from app.database.database import db
 
-class Valuation(Base):
+
+class Valuation(db.Model):
     __tablename__ = "valuations"
 
-    id              = Column(Integer, primary_key=True, index=True)
-    listing_id      = Column(Integer, ForeignKey("listings.id"), unique=True, nullable=False)
-    condition_score = Column(Float, nullable=False)
-    price_low       = Column(Float, nullable=False)
-    price_mid       = Column(Float, nullable=False)
-    price_high      = Column(Float, nullable=False)
-    summary         = Column(Text, nullable=True)
-    positives       = Column(JSON, nullable=True)
-    concerns        = Column(JSON, nullable=True)
-    created_at      = Column(DateTime, default=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.Integer,
+        db.ForeignKey("listings.id"),
+        unique=True,
+        nullable=False
+    )
+
+    condition_score = db.Column(db.Float, nullable=False)
+
+    price_low = db.Column(db.Float, nullable=False)
+    price_mid = db.Column(db.Float, nullable=False)
+    price_high = db.Column(db.Float, nullable=False)
+
+    summary = db.Column(db.Text, nullable=True)
+
+    positives = db.Column(JSON, nullable=True)
+    concerns = db.Column(JSON, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

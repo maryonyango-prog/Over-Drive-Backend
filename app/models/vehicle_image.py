@@ -1,7 +1,7 @@
 from datetime import datetime
-from app.database import db
+from app.database.database import db
 
-class VehicleImage(db.model):
+class VehicleImage(db.Model):
     __tablename__ = "vehicle_images"
 
     id = db.Column(db.Integer, primary_key=True)

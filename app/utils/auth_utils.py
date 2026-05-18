@@ -22,7 +22,7 @@ def token_required(f):
         try:
             payload = jwt.decode(
                 token,
-                os.getenv("JWT_SECRET_KEY", "change-me"),
+                os.getenv("JWT_SECRET_KEY"),
                 algorithms=["HS256"]
             )
 

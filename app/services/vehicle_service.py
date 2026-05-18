@@ -1,4 +1,4 @@
-from app.database import db
+from app.database.database import db
 from app.models.vehicle import Vehicle
 from app.services.vehicle_analysis_service import VehicleAnalysisService
 
