@@ -6,30 +6,20 @@ class VehicleImage(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # One Vehicle -> Many Images
-    images = db.relationship(
-        "VehicleImage",
-        backref="vehicle",
-        lazy=True,
-        cascade="all, delete-orphan"
-)
-    #Add relationship to vehicles table
+    # 🔥 Correct FK to parent table
     vehicle_id = db.Column(
         db.Integer,
         db.ForeignKey("vehicles.id"),
         nullable=False,
-        index = True
+        index=True
     )
 
-    #About the Image
+    # Image metadata
     image_url = db.Column(db.String(255), nullable=False)
-    image_type = db.Column(
-        db.String(50),
-        nullable=False
-    )
+    image_type = db.Column(db.String(50), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     file_size = db.Column(db.Integer, nullable=False)
-    upload_date = db.Column(db.DateTime, default=datetime.utcnow)   
+    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {

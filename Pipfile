@@ -9,10 +9,12 @@ SQLAlchemy = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 python-jose = "*"
-passlib = {extras = ["bcrypt"], version = "*"}
+passlib = {extras = ["bcrypt"]}
 alembic = "*"
+flask-cors = "*"
+flask-sqlalchemy = "*"
+pyjwt = "*"
+openai = "*"
 
-[dev-packages]
-
-
-python_version = "3.10"
+[requires]
+python_version = "3.14"

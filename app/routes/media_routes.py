@@ -1,6 +1,6 @@
 # app/routes/media_routes.py
 from flask import Blueprint, request, jsonify
-from app.services.media_service import MediaService
+from app.services.media_service import save_vehicle_image
 from app.utils.file_utils import allowed_file
 
 media_bp = Blueprint("media", __name__, url_prefix="/api/media")
@@ -8,7 +8,6 @@ media_bp = Blueprint("media", __name__, url_prefix="/api/media")
 
 @media_bp.route("/vehicles/<int:vehicle_id>/upload", methods=["POST"])
 def upload_vehicle_image(vehicle_id):
-    # Check if file was sent
     if "image" not in request.files:
         return jsonify({
             "success": False,
@@ -34,7 +33,7 @@ def upload_vehicle_image(vehicle_id):
     # Optional image type (front, rear, interior, engine, damage, general)
     image_type = request.form.get("image_type", "general")
 
-    response, status = MediaService.upload_vehicle_image(
+    response, status = save_vehicle_image(
         vehicle_id,
         file,
         image_type
@@ -45,11 +44,11 @@ def upload_vehicle_image(vehicle_id):
 
 @media_bp.route("/vehicles/<int:vehicle_id>/images", methods=["GET"])
 def get_vehicle_images(vehicle_id):
-    response, status = MediaService.get_vehicle_images(vehicle_id)
+    response, status = save_vehicle_image.get_vehicle_images(vehicle_id)
     return jsonify(response), status
 
 
 @media_bp.route("/images/<int:image_id>", methods=["DELETE"])
 def delete_image(image_id):
-    response, status = MediaService.delete_image(image_id)
+    response, status = save_vehicle_image.delete_image(image_id)
     return jsonify(response), status

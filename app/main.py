@@ -1,7 +1,7 @@
 import os
 from flask import Flask
+from flask_cors import CORS
 from dotenv import load_dotenv
-
 from app.database.database import db
 
 # Blueprints
@@ -16,6 +16,20 @@ def create_app():
     """Application factory pattern."""
 
     app = Flask(__name__)
+
+    # Allow requests from your Vite React frontend
+    CORS(
+        app,
+        origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
+        supports_credentials=True,
+    )
+
+    # -----------------------
+    # CONFIGURATION
+    # -----------------------
     db_url = os.getenv("DATABASE_URL")
 
     if not db_url:
@@ -27,13 +41,14 @@ def create_app():
 
     print("DATABASE_URL =", db_url)
 
-
+    # -----------------------
+    # INITIALIZE EXTENSIONS
+    # -----------------------
     db.init_app(app)
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(vehicle_bp, url_prefix="/vehicle")
     app.register_blueprint(media_bp, url_prefix="/media")
-
 
     @app.route("/")
     def root():
@@ -47,12 +62,14 @@ def create_app():
             },
         }
 
+
     @app.route("/health")
     def health_check():
         return {
             "status": "healthy",
-            "service": "Over-Drive Backend"
+            "service": "Over-Drive Backend",
         }
+
 
     with app.app_context():
         db.create_all()
