@@ -58,7 +58,7 @@ def create_app():
     # -----------------------
     # BLUEPRINTS
     # -----------------------
-    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(vehicle_bp, url_prefix="/api/vehicle")
     app.register_blueprint(media_bp, url_prefix="/media")
 

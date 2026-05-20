@@ -11,9 +11,79 @@ from app.services.vehicle_service import VehicleService
 vehicle_bp = Blueprint("vehicle", __name__, url_prefix="/api/vehicle")
 
 
-# -------------------------
-# VEHICLE ROUTES
-# -------------------------
+# -------------------------------------------------
+# NEW: FRONTEND-COMPATIBLE AI VALUATION ENDPOINT
+# -------------------------------------------------
+@vehicle_bp.route("/valuation", methods=["POST"])
+def create_valuation():
+    """
+    Frontend single-step flow:
+    create vehicle → run AI → return valuation
+    """
+
+    data = request.get_json() or {}
+    owner_id = data.get("owner_id", 1)
+
+    # 1. Create vehicle
+    vehicle_response, status = VehicleService.register_vehicle(data, owner_id)
+
+    if status != 201:
+        return jsonify(vehicle_response), status
+
+    # -----------------------------
+    # SAFE EXTRACTION (NO CRASH)
+    # -----------------------------
+    vehicle_data = None
+
+    if isinstance(vehicle_response, dict):
+        vehicle_data = (
+            vehicle_response.get("data")
+            or vehicle_response.get("vehicle")
+            or vehicle_response
+        )
+
+    if not isinstance(vehicle_data, dict):
+        return jsonify({
+            "error": "Invalid vehicle response format",
+            "debug": str(vehicle_response)
+        }), 500
+
+    vehicle_id = vehicle_data.get("id")
+
+    if not vehicle_id:
+        return jsonify({
+            "error": "Vehicle ID missing after creation",
+            "debug": vehicle_data
+        }), 500
+
+    # 2. Run AI analysis
+    analysis_response, analysis_status = VehicleService.analyze_vehicle(vehicle_id)
+
+    if analysis_status != 200:
+        return jsonify(analysis_response), analysis_status
+
+    # 3. Normalize AI response safely
+    valuation_data = None
+
+    if isinstance(analysis_response, dict):
+        valuation_data = (
+            analysis_response.get("data")
+            or analysis_response
+        )
+    else:
+        valuation_data = analysis_response
+
+    # 4. Final response (frontend contract)
+    return jsonify({
+        "id": vehicle_id,
+        "vehicle": vehicle_data,
+        "valuation": valuation_data
+    }), 200
+
+
+# -------------------------------------------------
+# EXISTING ROUTES (KEPT FOR BACKWARD COMPATIBILITY)
+# -------------------------------------------------
 
 @vehicle_bp.route("/<int:vehicle_id>/analyze", methods=["POST"])
 def analyze_vehicle(vehicle_id):
@@ -37,9 +107,9 @@ def get_vehicle(vehicle_id):
     return jsonify(response), status
 
 
-# -------------------------
+# -------------------------------------------------
 # IMAGE UPLOAD ROUTE
-# -------------------------
+# -------------------------------------------------
 
 @vehicle_bp.route("/<int:vehicle_id>/upload_image", methods=["POST"])
 def upload_vehicle_image(vehicle_id):
@@ -59,7 +129,6 @@ def upload_vehicle_image(vehicle_id):
     file_size = os.path.getsize(file_path)
     image_type = file.content_type or "unknown"
 
-    # IMPORTANT FIX: use consistent URL (no request.host_url needed)
     image_url = f"/uploads/{filename}"
 
     new_image = VehicleImage(
@@ -79,11 +148,19 @@ def upload_vehicle_image(vehicle_id):
     }), 201
 
 
-# -------------------------
+# -------------------------------------------------
 # SERVE UPLOADED FILES
-# -------------------------
+# -------------------------------------------------
 
 @vehicle_bp.route("/uploads/<filename>")
 def serve_uploaded_file(filename):
     upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
     return send_from_directory(upload_folder, filename)
+
+@vehicle_bp.route("/draft", methods=["POST"])
+def create_draft_vehicle():
+    data = request.get_json() or {}
+    owner_id = data.get("owner_id", 1)
+
+    vehicle, status = VehicleService.create_draft_vehicle(owner_id)
+    return jsonify(vehicle), status
