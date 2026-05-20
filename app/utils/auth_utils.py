@@ -2,31 +2,50 @@ import os
 import jwt
 from functools import wraps
 from flask import request, jsonify, g
-from app.database.database import db
+
 from app.models.user import User
 
 
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        auth_header = request.headers.get("Authorization", "")
 
-        if not auth_header.startswith("Bearer "):
+        auth_header = request.headers.get("Authorization")
+
+        if not auth_header:
             return jsonify({
                 "success": False,
-                "message": "Missing token"
+                "message": "Authorization header missing"
             }), 401
 
-        token = auth_header.split(" ")[1]
+        parts = auth_header.split()
+
+        if len(parts) != 2 or parts[0] != "Bearer":
+            return jsonify({
+                "success": False,
+                "message": "Invalid authorization format"
+            }), 401
+
+        token = parts[1]
 
         try:
+            secret = os.getenv("JWT_SECRET_KEY", "change-me")
+
             payload = jwt.decode(
                 token,
-                os.getenv("JWT_SECRET_KEY"),
+                secret,
                 algorithms=["HS256"]
             )
 
-            user = User.query.get(int(payload["sub"]))
+            user_id = payload.get("sub")
+
+            if not user_id:
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid token payload"
+                }), 401
+
+            user = User.query.get(int(user_id))
 
             if not user:
                 return jsonify({
@@ -34,6 +53,7 @@ def token_required(f):
                     "message": "User not found"
                 }), 404
 
+            # Attach user to request context
             g.current_user = user
 
         except jwt.ExpiredSignatureError:
@@ -47,6 +67,13 @@ def token_required(f):
                 "success": False,
                 "message": "Invalid token"
             }), 401
+
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "message": "Authentication error",
+                "error": str(e)
+            }), 500
 
         return f(*args, **kwargs)
 

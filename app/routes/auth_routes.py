@@ -2,16 +2,18 @@ from flask import Blueprint, request, jsonify, g
 from app.services.auth_service import AuthService
 from app.utils.auth_utils import token_required
 
-
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
+# -------------------------
+# REGISTER
+# -------------------------
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json() or {}
 
-    required_fields = ["first_name", "last_name", "email", "password"]
-    missing = [field for field in required_fields if not data.get(field)]
+    required_fields = ["full_name", "email", "password"]
+    missing = [f for f in required_fields if not data.get(f)]
 
     if missing:
         return jsonify({
@@ -29,6 +31,9 @@ def register():
     return jsonify(response), status
 
 
+# -------------------------
+# LOGIN
+# -------------------------
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json() or {}
@@ -43,6 +48,9 @@ def login():
     return jsonify(response), status
 
 
+# -------------------------
+# CURRENT USER
+# -------------------------
 @auth_bp.route("/me", methods=["GET"])
 @token_required
 def me():

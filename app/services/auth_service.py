@@ -7,6 +7,7 @@ from app.database.database import db
 
 
 class AuthService:
+
     @staticmethod
     def generate_token(user):
         payload = {
@@ -21,22 +22,18 @@ class AuthService:
 
     @staticmethod
     def register(data):
-        email_addr = data["email"].strip().lower()
 
-        existing_user = User.query.filter_by(email=email_addr).first()
-        if existing_user:
-            return {
-                "success": False,
-                "message": "Email already exists"
-            }, 409
+        email = data["email"].strip().lower()
 
-        fullname = data["fullname"].strip()
+        if User.query.filter_by(email=email).first():
+            return {"success": False, "message": "Email already exists"}, 409
 
         new_user = User(
-            fullname=fullname,
-            email=email_addr,
+            full_name=data["full_name"].strip(),
+            email=email,
             phone=data.get("phone")
         )
+
         new_user.set_password(data["password"])
 
         db.session.add(new_user)
@@ -55,23 +52,21 @@ class AuthService:
 
     @staticmethod
     def login(data):
-        email_addr = data["email"].strip().lower()
-        user_obj = User.query.filter_by(email=email_addr).first()
 
-        if not user_obj or not user_obj.check_password(data["password"]):
-            return {
-                "success": False,
-                "message": "Invalid email or password"
-            }, 401
+        email = data["email"].strip().lower()
 
-        token = AuthService.generate_token(user_obj)
+        user = User.query.filter_by(email=email).first()
+
+        if not user or not user.check_password(data["password"]):
+            return {"success": False, "message": "Invalid credentials"}, 401
+
+        token = AuthService.generate_token(user)
 
         return {
             "success": True,
             "message": "Login successful",
             "data": {
-                "user": user_obj.to_dict(),
+                "user": user.to_dict(),
                 "access_token": token
             }
         }, 200
-    

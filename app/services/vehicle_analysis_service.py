@@ -1,175 +1,83 @@
-from datetime import datetime
-from app.models.vehicle import Vehicle
-
-# 👇 NEW: AI Vision import
-from app.ai.openai_vision import OpenAIVisionService
 import json
+from datetime import datetime
+
+from app.models.vehicle_analysis import VehicleAnalysis
+from app.ai.claude_vision import ClaudeVisionService
+from app.database.database import db
 
 
 class VehicleAnalysisService:
 
     @staticmethod
-    def analyze(data: dict) -> dict:
+    def analyze(vehicle):
 
-        vehicle_id = data.get("vehicle_id")
-        vehicle = Vehicle.query.get(vehicle_id)
+        images = vehicle.images
 
-        if not vehicle:
-            return {"error": "Vehicle not found"}, 404
+        if not images:
+            return {"error": "No images found"}, 400
 
-        current_year = datetime.utcnow().year
+        rule_score = 0
+        ai_penalty = 0
+        ai_results = []
 
-        year = vehicle.year
-        mileage = vehicle.mileage
-        asking_price = vehicle.asking_price or 0
-        previous_owners = vehicle.previous_owners or 1
-        service_history = vehicle.service_history_available or False
-        accident_history = vehicle.accident_history or False
+        for img in images:
 
-        # -----------------------------
-        # STEP 1: RULE-BASED SCORING
-        # -----------------------------
-        age_years = max(0, current_year - year)
-        annual_mileage = mileage / max(1, age_years)
+            prompt = f"""
+You are a vehicle inspection AI.
+Analyze the car image and return JSON:
+- condition_score
+- detected_issues
+- summary
+"""
 
-        score = 0
+            result = ClaudeVisionService.analyze(
+                img.image_url,
+                prompt
+            )
 
-        # Mileage score
-        if annual_mileage < 10000:
-            score += 30
-        elif annual_mileage <= 20000:
-            score += 25
-        elif annual_mileage <= 30000:
-            score += 15
-        else:
-            score += 5
+            try:
+                parsed = json.loads(result)
+            except:
+                parsed = {"summary": result}
 
-        # Service history
-        if service_history:
-            score += 20
+            ai_results.append(parsed)
 
-        # Accident history
-        if not accident_history:
-            score += 20
+            text = json.dumps(parsed).lower()
 
-        # Previous owners
-        if previous_owners == 1:
-            score += 15
-        elif previous_owners == 2:
-            score += 10
-        else:
-            score += 5
+            if "scratch" in text:
+                ai_penalty += 5
+            if "dent" in text:
+                ai_penalty += 10
+            if "rust" in text:
+                ai_penalty += 15
 
-        # Age score
-        if age_years <= 10:
-            score += 15
-        else:
-            score += 10
+        final_score = max(0, 100 - ai_penalty)
 
-        rule_score = min(score, 100)
-
-        # -----------------------------
-        # STEP 2: AI VISION ANALYSIS
-        # -----------------------------
-        ai_inspections = []
-        damage_penalty = 0
-
-        try:
-            # vehicle.images MUST exist (VehicleImage model relation)
-            if hasattr(vehicle, "images") and vehicle.images:
-
-                for img in vehicle.images:
-
-                    ai_result = OpenAIVisionService.analyze_vehicle_image(img.file_path)
-
-                    # try parsing JSON safely
-                    try:
-                        parsed = json.loads(ai_result)
-                    except:
-                        parsed = {"raw": ai_result}
-
-                    ai_inspections.append(parsed)
-
-                    # -----------------------------
-                    # DAMAGE SCORING FROM AI
-                    # -----------------------------
-                    if "scratches" in str(parsed):
-                        if "moderate" in str(parsed):
-                            damage_penalty += 10
-                        elif "severe" in str(parsed):
-                            damage_penalty += 20
-
-                    if "dents" in str(parsed):
-                        if "moderate" in str(parsed):
-                            damage_penalty += 10
-                        elif "severe" in str(parsed):
-                            damage_penalty += 20
-
-                    if "rust" in str(parsed):
-                        if "moderate" in str(parsed):
-                            damage_penalty += 10
-                        elif "severe" in str(parsed):
-                            damage_penalty += 15
-
-        except Exception as e:
-            ai_inspections.append({
-                "error": "AI analysis failed",
-                "details": str(e)
-            })
-
-        # -----------------------------
-        # STEP 3: COMBINED SCORE
-        # -----------------------------
-        final_score = max(0, min(100, rule_score - damage_penalty))
-
-        # -----------------------------
-        # STEP 4: RISK LEVEL
-        # -----------------------------
         if final_score >= 80:
-            risk_level = "Low"
+            risk = "Low"
+            assessment = "Fair"
+            recommendation = "Good deal"
         elif final_score >= 60:
-            risk_level = "Medium"
+            risk = "Medium"
+            assessment = "Slightly overpriced"
+            recommendation = "Negotiate"
         else:
-            risk_level = "High"
+            risk = "High"
+            assessment = "Overpriced"
+            recommendation = "Avoid"
 
-         #PRICE ASSESSMENT
-        # 
-        if final_score >= 85:
-            price_assessment = "Fair"
-        elif final_score >= 70:
-            price_assessment = "Slightly Overpriced"
-        else:
-            price_assessment = "Overpriced"
+        analysis = VehicleAnalysis(
+            vehicle_id=vehicle.id,
+            final_score=final_score,
+            risk_level=risk,
+            price_assessment=assessment,
+            rule_score=rule_score,
+            ai_penalty=ai_penalty,
+            ai_results=ai_results,
+            recommendation=recommendation
+        )
 
-        # -----------------------------
-        # STEP 6: RECOMMENDATION
-        # -----------------------------
-        if final_score >= 85:
-            recommendation = "Good deal, consider buying."
-        elif final_score >= 70:
-            recommendation = "Fair deal, consider negotiating."
-        elif final_score >= 50:
-            recommendation = "Not a good deal, consider looking for other options."
-        else:
-            recommendation = "Poor deal, avoid buying."
+        db.session.add(analysis)
+        db.session.commit()
 
-        return {
-            "vehicle_id": vehicle.id,
-            "age_years": age_years,
-            "annual_mileage": annual_mileage,
-
-            # core scores
-            "rule_score": rule_score,
-            "ai_damage_penalty": damage_penalty,
-            "final_score": final_score,
-
-            # AI results
-            "ai_inspections": ai_inspections,
-
-            # decision
-            "risk_level": risk_level,
-            "price_assessment": price_assessment,
-            "recommendation": recommendation,
-
-            "asking_price": asking_price,
-        }
+        return analysis.to_dict(), 200
