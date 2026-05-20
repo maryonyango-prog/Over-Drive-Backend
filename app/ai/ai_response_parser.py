@@ -3,9 +3,6 @@ import re
 
 
 def clean_json_text(text: str) -> str:
-    """
-    Removes common LLM artifacts like ```json fences and stray text.
-    """
 
     if not text:
         return ""

@@ -73,7 +73,7 @@ def create_valuation():
     else:
         valuation_data = analysis_response
 
-    # 4. Final response (frontend contract)
+    # 4. Final response
     return jsonify({
         "id": vehicle_id,
         "vehicle": vehicle_data,

@@ -9,19 +9,7 @@ import requests
 class ClaudeVisionService:
     @staticmethod
     def analyze(image_path: str, prompt: str):
-        """
-        Analyze a local image using Anthropic Claude Vision.
 
-        Supported image_path formats:
-            uploads/car.jpg
-            /uploads/car.jpg
-            /absolute/path/to/uploads/car.jpg
-
-        Returns:
-            - Parsed Python dict if Claude returns valid JSON
-            - Error dict if something fails
-            - {"raw_response": "..."} if Claude returns non-JSON text
-        """
 
         # ---------------------------------------------------------
         # 1. Resolve absolute file path

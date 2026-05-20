@@ -37,7 +37,7 @@ def register():
     service_data = {
         "full_name": data["name"],
         "email": data["email"],
-        "phone": data.get("phone"),   # FIXED (consistent)
+        "phone": data.get("phone"),  
         "password": data["password"]
     }
 
@@ -81,12 +81,12 @@ def login():
 
 
 # -------------------------
-# DELETE ACCOUNT (FIXED)
+# DELETE ACCOUNT 
 # -------------------------
 @auth_bp.route("/account", methods=["DELETE"])
 @token_required
 def delete_account():
-    user = g.current_user  # from token_required decorator
+    user = g.current_user  
 
     response, status = AuthService.delete_account(user)
     return jsonify(response), status

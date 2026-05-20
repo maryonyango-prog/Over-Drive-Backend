@@ -1,5 +1,3 @@
-# app/services/media_service.py
-
 import os
 
 from app.database.database import db
@@ -26,7 +24,7 @@ class MediaService:
         # Create database record
         image = VehicleImage(
             vehicle_id=vehicle_id,
-            image_url=file_data["file_path"],   # Example: uploads/abc123.jpg
+            image_url=file_data["file_path"],   
             filename=file_data["filename"],
             file_size=file_data["file_size"],
             image_type=image_type

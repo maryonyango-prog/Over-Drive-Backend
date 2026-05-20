@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.utils.file_utils import allowed_file
 from app.services.media_service import MediaService
 
-# IMPORTANT: This is what app.main imports
+
 media_bp = Blueprint("media", __name__, url_prefix="/api/media")
 
 
