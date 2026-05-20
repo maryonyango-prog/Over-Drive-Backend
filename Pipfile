@@ -14,7 +14,7 @@ alembic = "*"
 flask-cors = "*"
 flask-sqlalchemy = "*"
 pyjwt = "*"
-openai = "*"
+anthropic = "*"
 flask-migrate = "*"
 
 [requires]
