@@ -120,11 +120,14 @@ Return ONLY valid JSON:
             final_score=final_score,
             risk_level=risk,
             price_assessment=assessment,
+
+    # ADD THIS
+            rule_score=final_score,
+
             ai_penalty=ai_penalty,
             ai_results=ai_results,
             recommendation=recommendation
-        )
-
+)
         db.session.add(analysis)
         db.session.commit()
 
