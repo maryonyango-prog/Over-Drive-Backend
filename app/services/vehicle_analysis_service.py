@@ -9,7 +9,7 @@ from app.database.database import db
 class VehicleAnalysisService:
 
     # ─────────────────────────────────────────────
-    # PRICE ESTIMATION (simple baseline model)
+    # PRICE ESTIMATION 
     # ─────────────────────────────────────────────
     @staticmethod
     def estimate_price(vehicle, score):
