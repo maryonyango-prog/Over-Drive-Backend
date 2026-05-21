@@ -54,11 +54,12 @@ pipenv install
 pipenv shell
 ```
 ### Create .env file
-
+```bash
 DATABASE_URL=your_postgres_connection_string
 SECRET_KEY=your_secret_key
 JWT_SECRET_KEY=your_jwt_secret
 CORS_ORIGINS=http://localhost:5173
+```
 
 ### Run database migrations
 flask db init
