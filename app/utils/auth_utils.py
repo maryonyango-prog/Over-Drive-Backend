@@ -53,7 +53,6 @@ def token_required(f):
                     "message": "User not found"
                 }), 404
 
-            # Attach user to request context
             g.current_user = user
 
         except jwt.ExpiredSignatureError:

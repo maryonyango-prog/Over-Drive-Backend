@@ -1,81 +1,54 @@
 import os
 
-from flask import Blueprint, request, jsonify, current_app, send_from_directory
+from flask import Blueprint, request, jsonify, current_app, send_from_directory, g
 from werkzeug.utils import secure_filename
 
 from app.database.database import db
-from app.models import vehicle
 from app.models.vehicle_image import VehicleImage
-from app.services.vehicle_service import VehicleService
 from app.models.vehicle import Vehicle
+from app.services.vehicle_service import VehicleService
+from app.utils.auth_utils import token_required
 
 
 vehicle_bp = Blueprint("vehicle", __name__, url_prefix="/api/vehicle")
 
 
 # -------------------------------------------------
-# NEW: FRONTEND-COMPATIBLE AI VALUATION ENDPOINT
+# VALUATION (SECURED)
 # -------------------------------------------------
 @vehicle_bp.route("/valuation", methods=["POST"])
+@token_required
 def create_valuation():
-    """
-    Frontend single-step flow:
-    create vehicle → run AI → return valuation
-    """
 
     data = request.get_json() or {}
-    owner_id = data.get("owner_id", 1)
+    owner_id = g.current_user.id
 
-    # 1. Create vehicle
     vehicle_response, status = VehicleService.register_vehicle(data, owner_id)
 
     if status != 201:
         return jsonify(vehicle_response), status
 
-    # -----------------------------
-    # SAFE EXTRACTION (NO CRASH)
-    # -----------------------------
-    vehicle_data = None
-
-    if isinstance(vehicle_response, dict):
-        vehicle_data = (
-            vehicle_response.get("data")
-            or vehicle_response.get("vehicle")
-            or vehicle_response
-        )
-
-    if not isinstance(vehicle_data, dict):
-        return jsonify({
-            "error": "Invalid vehicle response format",
-            "debug": str(vehicle_response)
-        }), 500
+    vehicle_data = (
+        vehicle_response.get("data")
+        or vehicle_response.get("vehicle")
+        or vehicle_response
+    )
 
     vehicle_id = vehicle_data.get("id")
 
     if not vehicle_id:
-        return jsonify({
-            "error": "Vehicle ID missing after creation",
-            "debug": vehicle_data
-        }), 500
+        return jsonify({"error": "Vehicle ID missing"}), 500
 
-    # 2. Run AI analysis
     analysis_response, analysis_status = VehicleService.analyze_vehicle(vehicle_id)
 
     if analysis_status != 200:
         return jsonify(analysis_response), analysis_status
 
-    # 3. Normalize AI response safely
-    valuation_data = None
+    valuation_data = (
+        analysis_response.get("data")
+        or analysis_response
+    )
 
-    if isinstance(analysis_response, dict):
-        valuation_data = (
-            analysis_response.get("data")
-            or analysis_response
-        )
-    else:
-        valuation_data = analysis_response
-
-    # 4. Final response
     return jsonify({
         "id": vehicle_id,
         "vehicle": vehicle_data,
@@ -84,37 +57,75 @@ def create_valuation():
 
 
 # -------------------------------------------------
-# EXISTING ROUTES (KEPT FOR BACKWARD COMPATIBILITY)
+# REGISTER VEHICLE (SECURED)
 # -------------------------------------------------
-
-@vehicle_bp.route("/<int:vehicle_id>/analyze", methods=["POST"])
-def analyze_vehicle(vehicle_id):
-    response, status = VehicleService.analyze_vehicle(vehicle_id)
-    return jsonify(response), status
-
-
 @vehicle_bp.route("/register", methods=["POST"])
+@token_required
 def register_vehicle():
-    data = request.get_json() or {}
 
-    owner_id = data.get("owner_id", 1)
+    data = request.get_json() or {}
+    owner_id = g.current_user.id
 
     response, status = VehicleService.register_vehicle(data, owner_id)
+
     return jsonify(response), status
 
 
+# -------------------------------------------------
+# ANALYZE VEHICLE (SECURED + OWNERSHIP CHECK)
+# -------------------------------------------------
+@vehicle_bp.route("/<int:vehicle_id>/analyze", methods=["POST"])
+@token_required
+def analyze_vehicle(vehicle_id):
+
+    vehicle = Vehicle.query.get(vehicle_id)
+
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    if vehicle.owner_id != g.current_user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    response, status = VehicleService.analyze_vehicle(vehicle_id)
+
+    return jsonify(response), status
+
+
+# -------------------------------------------------
+# GET VEHICLE (SECURED)
+# -------------------------------------------------
 @vehicle_bp.route("/<int:vehicle_id>", methods=["GET"])
+@token_required
 def get_vehicle(vehicle_id):
+
+    vehicle = Vehicle.query.get(vehicle_id)
+
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    if vehicle.owner_id != g.current_user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
     response, status = VehicleService.get_vehicle(vehicle_id)
+
     return jsonify(response), status
 
 
 # -------------------------------------------------
-# IMAGE UPLOAD ROUTE
+# UPLOAD IMAGE (SECURED)
 # -------------------------------------------------
-
 @vehicle_bp.route("/<int:vehicle_id>/upload_image", methods=["POST"])
+@token_required
 def upload_vehicle_image(vehicle_id):
+
+    vehicle = Vehicle.query.get(vehicle_id)
+
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    if vehicle.owner_id != g.current_user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
     file = request.files.get("image")
 
     if not file:
@@ -151,65 +162,67 @@ def upload_vehicle_image(vehicle_id):
 
 
 # -------------------------------------------------
-# SERVE UPLOADED FILES
+# SERVE FILES
 # -------------------------------------------------
-
 @vehicle_bp.route("/uploads/<filename>")
 def serve_uploaded_file(filename):
+
     upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
     return send_from_directory(upload_folder, filename)
 
+
+# -------------------------------------------------
+# DRAFT VEHICLE (SECURED)
+# -------------------------------------------------
 @vehicle_bp.route("/draft", methods=["POST"])
+@token_required
 def create_draft_vehicle():
-    data = request.get_json() or {}
-    owner_id = data.get("owner_id", 1)
 
-    vehicle, status = VehicleService.create_draft_vehicle(owner_id)
-    return jsonify(vehicle), status
+    owner_id = g.current_user.id
 
+    response, status = VehicleService.create_draft_vehicle(owner_id)
+
+    return jsonify(response), status
+
+
+# -------------------------------------------------
+# VALUATION FETCH (SECURED)
+# -------------------------------------------------
 @vehicle_bp.route("/<int:vehicle_id>/valuation", methods=["GET"])
+@token_required
 def get_vehicle_valuation(vehicle_id):
 
     vehicle = Vehicle.query.get(vehicle_id)
 
     if not vehicle:
-        return jsonify({
-            "error": "Vehicle not found"
-        }), 404
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    if vehicle.owner_id != g.current_user.id:
+        return jsonify({"error": "Unauthorized"}), 403
 
     analysis_data = None
 
     if vehicle.analysis:
-        analysis_data = vehicle.analysis.to_dict() if vehicle.analysis else None    
+        analysis_data = vehicle.analysis.to_dict()
 
     return jsonify({
-    "id": vehicle.id,
-    "owner_id": vehicle.owner_id,
-
-    "make": vehicle.make,
-    "model": vehicle.model,
-    "year": vehicle.year,
-    "mileage": vehicle.mileage,
-    "asking_price": vehicle.asking_price,
-
-    "fuel_type": vehicle.fuel_type,
-    "transmission": vehicle.transmission,
-
-
-    "condition": vehicle.condition,
-    "body_type": vehicle.body_type,
-    "engine_size": vehicle.engine_size,
-    "color": vehicle.color,
-    "description": vehicle.description,
-
-    "previous_owners": vehicle.previous_owners,
-    "service_history_available": vehicle.service_history_available,
-    "accident_history": vehicle.accident_history,
-
-    "images": [
-        image.to_dict()
-        for image in vehicle.images
-    ],
-
-    "analysis": analysis_data
-}), 200
+        "id": vehicle.id,
+        "owner_id": vehicle.owner_id,
+        "make": vehicle.make,
+        "model": vehicle.model,
+        "year": vehicle.year,
+        "mileage": vehicle.mileage,
+        "asking_price": vehicle.asking_price,
+        "fuel_type": vehicle.fuel_type,
+        "transmission": vehicle.transmission,
+        "condition": vehicle.condition,
+        "body_type": vehicle.body_type,
+        "engine_size": vehicle.engine_size,
+        "color": vehicle.color,
+        "description": vehicle.description,
+        "previous_owners": vehicle.previous_owners,
+        "service_history_available": vehicle.service_history_available,
+        "accident_history": vehicle.accident_history,
+        "images": [img.to_dict() for img in vehicle.images],
+        "analysis": analysis_data
+    }), 200
