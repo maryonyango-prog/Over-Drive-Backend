@@ -8,6 +8,23 @@ from app.database.database import db
 
 class VehicleAnalysisService:
 
+    # ─────────────────────────────────────────────
+    # PRICE ESTIMATION (simple baseline model)
+    # ─────────────────────────────────────────────
+    @staticmethod
+    def estimate_price(vehicle, score):
+        """
+        Basic valuation model.
+        You can later replace with ML / market API.
+        """
+        base_price = 2000000  # KES baseline
+
+        multiplier = max(0, min(score, 100)) / 100
+        return int(base_price * multiplier)
+
+    # ─────────────────────────────────────────────
+    # MAIN ANALYSIS FUNCTION
+    # ─────────────────────────────────────────────
     @staticmethod
     def analyze(vehicle):
 
@@ -16,18 +33,23 @@ class VehicleAnalysisService:
         if not images:
             return {"error": "No images found"}, 400
 
-        rule_score = 0
         ai_penalty = 0
         ai_results = []
 
+        # ─────────────────────────────
+        # AI IMAGE ANALYSIS LOOP
+        # ─────────────────────────────
         for img in images:
 
-            prompt = f"""
-You are a vehicle inspection AI.
-Analyze the car image and return JSON:
-- condition_score
-- detected_issues
-- summary
+            prompt = """
+You are a professional vehicle inspection AI.
+
+Return ONLY valid JSON:
+{
+  "condition_score": number (0-100),
+  "detected_issues": [],
+  "summary": "short explanation"
+}
 """
 
             result = ClaudeVisionService.analyze(
@@ -35,24 +57,40 @@ Analyze the car image and return JSON:
                 prompt
             )
 
+            # Safe parsing
             try:
                 parsed = json.loads(result)
             except:
-                parsed = {"summary": result}
+                parsed = {
+                    "condition_score": 50,
+                    "detected_issues": [],
+                    "summary": result
+                }
 
             ai_results.append(parsed)
 
             text = json.dumps(parsed).lower()
 
+            # ─────────────────────────────
+            # SIMPLE DAMAGE PENALTY MODEL
+            # ─────────────────────────────
             if "scratch" in text:
                 ai_penalty += 5
             if "dent" in text:
                 ai_penalty += 10
             if "rust" in text:
                 ai_penalty += 15
+            if "broken" in text:
+                ai_penalty += 20
 
+        # ─────────────────────────────
+        # FINAL SCORE CALCULATION
+        # ─────────────────────────────
         final_score = max(0, 100 - ai_penalty)
 
+        # ─────────────────────────────
+        # BUSINESS LOGIC
+        # ─────────────────────────────
         if final_score >= 80:
             risk = "Low"
             assessment = "Fair"
@@ -66,12 +104,22 @@ Analyze the car image and return JSON:
             assessment = "Overpriced"
             recommendation = "Avoid"
 
+        # ─────────────────────────────
+        # PRICE ESTIMATION
+        # ─────────────────────────────
+        estimated_value = VehicleAnalysisService.estimate_price(
+            vehicle,
+            final_score
+        )
+
+        # ─────────────────────────────
+        # SAVE TO DATABASE
+        # ─────────────────────────────
         analysis = VehicleAnalysis(
             vehicle_id=vehicle.id,
             final_score=final_score,
             risk_level=risk,
             price_assessment=assessment,
-            rule_score=rule_score,
             ai_penalty=ai_penalty,
             ai_results=ai_results,
             recommendation=recommendation
@@ -80,4 +128,31 @@ Analyze the car image and return JSON:
         db.session.add(analysis)
         db.session.commit()
 
-        return analysis.to_dict(), 200
+        # ─────────────────────────────
+        # FRONTEND-COMPATIBLE RESPONSE
+        # ─────────────────────────────
+        return {
+            "id": analysis.id,
+            "vehicleId": vehicle.id,
+
+            "estimatedValue": estimated_value,
+            "confidence": final_score,
+
+            "riskLevel": risk,
+            "assessment": assessment,
+            "recommendation": recommendation,
+
+            "breakdown": [
+                {
+                    "factor": "AI Image Analysis",
+                    "impact": -ai_penalty,
+                    "description": "Detected issues from vehicle images"
+                }
+            ],
+
+            "summary": f"{assessment}. {recommendation}. Risk level: {risk}.",
+
+            "aiResults": ai_results,
+
+            "createdAt": datetime.utcnow().isoformat()
+        }, 200

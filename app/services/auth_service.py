@@ -2,7 +2,6 @@ import os
 import jwt
 from datetime import datetime, timedelta, timezone
 
-from app.models import user
 from app.models.user import User
 from app.database.database import db
 

@@ -5,7 +5,6 @@ class Vehicle(db.Model):
     __tablename__ = "vehicle"
 
     id = db.Column(db.Integer, primary_key=True)
-
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     make = db.Column(db.String(100))
@@ -17,16 +16,22 @@ class Vehicle(db.Model):
     fuel_type = db.Column(db.String(50))
     transmission = db.Column(db.String(50))
 
+    condition = db.Column(db.String(50))
+    body_type = db.Column(db.String(50))
+    engine_size = db.Column(db.Integer)
+    color = db.Column(db.String(50))
+    description = db.Column(db.Text)
+
     previous_owners = db.Column(db.Integer, default=1)
     service_history_available = db.Column(db.Boolean, default=False)
     accident_history = db.Column(db.Boolean, default=False)
 
-    # RELATIONSHIPS
+    # RELATIONSHIPS (MISSING BEFORE — THIS FIXES YOUR ERRORS)
     images = db.relationship(
         "VehicleImage",
         backref="vehicle",
-        cascade="all, delete-orphan",
-        lazy=True
+        lazy=True,
+        cascade="all, delete-orphan"
     )
 
     analysis = db.relationship(
@@ -47,7 +52,12 @@ class Vehicle(db.Model):
             "asking_price": self.asking_price,
             "fuel_type": self.fuel_type,
             "transmission": self.transmission,
+            "condition": self.condition,
+            "body_type": self.body_type,
+            "engine_size": self.engine_size,
+            "color": self.color,
+            "description": self.description,
             "previous_owners": self.previous_owners,
             "service_history_available": self.service_history_available,
             "accident_history": self.accident_history,
-    }
+        }

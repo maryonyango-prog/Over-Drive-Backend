@@ -1,5 +1,3 @@
-# app/models/vehicle_image.py
-
 from datetime import datetime
 from app.database.database import db
 

@@ -4,8 +4,10 @@ from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.utils import secure_filename
 
 from app.database.database import db
+from app.models import vehicle
 from app.models.vehicle_image import VehicleImage
 from app.services.vehicle_service import VehicleService
+from app.models.vehicle import Vehicle
 
 
 vehicle_bp = Blueprint("vehicle", __name__, url_prefix="/api/vehicle")
@@ -164,3 +166,50 @@ def create_draft_vehicle():
 
     vehicle, status = VehicleService.create_draft_vehicle(owner_id)
     return jsonify(vehicle), status
+
+@vehicle_bp.route("/<int:vehicle_id>/valuation", methods=["GET"])
+def get_vehicle_valuation(vehicle_id):
+
+    vehicle = Vehicle.query.get(vehicle_id)
+
+    if not vehicle:
+        return jsonify({
+            "error": "Vehicle not found"
+        }), 404
+
+    analysis_data = None
+
+    if vehicle.analysis:
+        analysis_data = vehicle.analysis.to_dict() if vehicle.analysis else None    
+
+    return jsonify({
+    "id": vehicle.id,
+    "owner_id": vehicle.owner_id,
+
+    "make": vehicle.make,
+    "model": vehicle.model,
+    "year": vehicle.year,
+    "mileage": vehicle.mileage,
+    "asking_price": vehicle.asking_price,
+
+    "fuel_type": vehicle.fuel_type,
+    "transmission": vehicle.transmission,
+
+
+    "condition": vehicle.condition,
+    "body_type": vehicle.body_type,
+    "engine_size": vehicle.engine_size,
+    "color": vehicle.color,
+    "description": vehicle.description,
+
+    "previous_owners": vehicle.previous_owners,
+    "service_history_available": vehicle.service_history_available,
+    "accident_history": vehicle.accident_history,
+
+    "images": [
+        image.to_dict()
+        for image in vehicle.images
+    ],
+
+    "analysis": analysis_data
+}), 200

@@ -1,8 +1,8 @@
-"""fresh schema
+"""initial schema
 
-Revision ID: 242ebb905c8c
-Revises: 606b1a936ff9
-Create Date: 2026-05-20 14:50:02.252120
+Revision ID: 4bc0d8f3df66
+Revises: 
+Create Date: 2026-05-21 04:28:22.012092
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '242ebb905c8c'
-down_revision = '606b1a936ff9'
+revision = '4bc0d8f3df66'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -58,9 +58,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['vehicle_id'], ['vehicle.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    with op.batch_alter_table('vehicle_analysis', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_vehicle_analysis_vehicle_id'), ['vehicle_id'], unique=False)
-
     op.create_table('vehicle_images',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('vehicle_id', sa.Integer(), nullable=False),
@@ -84,9 +81,6 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_vehicle_images_vehicle_id'))
 
     op.drop_table('vehicle_images')
-    with op.batch_alter_table('vehicle_analysis', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_vehicle_analysis_vehicle_id'))
-
     op.drop_table('vehicle_analysis')
     op.drop_table('vehicle')
     op.drop_table('users')
