@@ -1,4 +1,6 @@
-# Over-Drive Backend
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=Over-Drive%20&descAlign=53&descAlignY=53&animation=fadeIn&fontSize=30&textBg=false"/>
+</p>
 
 AI Vehicle Valuation API built with Flask.
 
