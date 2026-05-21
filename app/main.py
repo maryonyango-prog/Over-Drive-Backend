@@ -40,13 +40,7 @@ def create_app():
     # -----------------------
     # CORS
     # -----------------------
-    CORS(
-        app,
-        origins=[
-            "http://localhost:5173",
-            "https://over-drive-frontend.vercel.app"
-        ]
-    )
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     # -----------------------
     # INIT EXTENSIONS
