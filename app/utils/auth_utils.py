@@ -45,7 +45,9 @@ def token_required(f):
                     "message": "Invalid token payload"
                 }), 401
 
-            # Safe conversion (prevents crashes)
+            # -----------------------------
+            # SAFE USER FETCH (IMPROVED)
+            # -----------------------------
             try:
                 user_id = int(user_id)
             except (ValueError, TypeError):
@@ -56,7 +58,7 @@ def token_required(f):
 
             user = User.query.get(user_id)
 
-            if not user:
+            if user is None:
                 return jsonify({
                     "success": False,
                     "message": "User not found"
