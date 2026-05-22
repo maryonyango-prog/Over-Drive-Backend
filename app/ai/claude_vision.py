@@ -173,6 +173,10 @@ class ClaudeVisionService:
         # ---------------------------------------------------------
         # 9. Clean markdown code fences if Claude wraps JSON
         # ---------------------------------------------------------
+        ##This section double-checks AI-generated responses by removing Markdown code fences such as 
+        # ```json, ensuring the text is valid JSON. It then safely parses the cleaned string into a Python dictionary,
+        #  and if parsing fails, it returns the raw response as a fallback to prevent system crashes.
+        
         cleaned_text = text.strip()
 
         # Remove opening ```json
