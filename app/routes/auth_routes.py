@@ -48,7 +48,7 @@ def register():
         return jsonify({
             "success": True,
             "user": response["data"]["user"],
-            "token": response["data"]["access_token"]
+            "token": response["data"]["token"]
         }), 201
 
     return jsonify(response), status
