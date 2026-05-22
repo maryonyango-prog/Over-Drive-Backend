@@ -23,7 +23,7 @@ def token_required(f):
         if len(parts) != 2 or parts[0] != "Bearer":
             return jsonify({
                 "success": False,
-                "message": "Invalid authorization format"
+                "message": "Invalid authorization format. Use: Bearer <token>"
             }), 401
 
         token = parts[1]
@@ -45,7 +45,16 @@ def token_required(f):
                     "message": "Invalid token payload"
                 }), 401
 
-            user = User.query.get(int(user_id))
+            # Safe conversion (prevents crashes)
+            try:
+                user_id = int(user_id)
+            except (ValueError, TypeError):
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid user ID in token"
+                }), 401
+
+            user = User.query.get(user_id)
 
             if not user:
                 return jsonify({

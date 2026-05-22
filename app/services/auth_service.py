@@ -22,7 +22,6 @@ class AuthService:
 
     @staticmethod
     def register(data):
-
         email = data["email"].strip().lower()
 
         if User.query.filter_by(email=email).first():
@@ -44,15 +43,12 @@ class AuthService:
         return {
             "success": True,
             "message": "User registered successfully",
-            "data": {
-                "user": new_user.to_dict(),
-                "access_token": token
-            }
+            "user": new_user.to_dict(),
+            "token": token
         }, 201
 
     @staticmethod
     def login(data):
-
         email = data["email"].strip().lower()
 
         user = User.query.filter_by(email=email).first()
@@ -65,38 +61,7 @@ class AuthService:
         return {
             "success": True,
             "message": "Login successful",
-            "data": {
-                "user": user.to_dict(),
-                "access_token": token
-            }
+            "user": user.to_dict(),
+            "token": token
         }, 200
     
-    @staticmethod
-    def delete_account(user):
-        db.session.delete(user)     
-        db.session.commit()
-        return {"message": "Account deleted"}, 200
-    
-    @staticmethod
-    def change_password(user, data):
-        if not user.check_password(data["currentPassword"]):
-            return {"message": "Current password is incorrect"}, 400
-
-        user.set_password(data["newPassword"])
-        db.session.commit()
-
-        return {"message": "Password updated"}, 200
-    
-    @staticmethod
-    def update_profile(user_id, data):
-        user = User.query.get(user_id)
-
-        if not user:
-            return {"message": "User not found"}, 404
-
-        user.full_name = data.get("name", user.full_name)
-        user.phone = data.get("phone", user.phone)
-
-        db.session.commit()
-
-        return {"user": user.to_dict()}, 200
