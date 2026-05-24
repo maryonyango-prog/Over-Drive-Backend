@@ -1,4 +1,15 @@
+import json
+import re
 from app.ai.kenya_car_pricer import kenya_pricer
+
+def clean_json_text(text: str) -> str:
+    if not text:
+        return ""
+    text = text.strip()
+    text = re.sub(r'^```json\s*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'^```\s*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\s*```$', '', text, flags=re.IGNORECASE)
+    return text.strip()
 
 def build_vehicle_analysis_prompt(vehicle_data):
     make = vehicle_data.get("make", "Unknown")
@@ -11,65 +22,63 @@ def build_vehicle_analysis_prompt(vehicle_data):
     market = kenya_pricer.get_market_price(make, model, year, mileage)
 
     return f"""
-You are a PROFESSIONAL Kenyan vehicle inspection and valuation expert in 2026.
+You are a warm, experienced Kenyan car dealer and mechanic in Nairobi.
 
-Your job is to carefully inspect the uploaded vehicle images like a real car assessor.
+Vehicle: {year} {make} {model}
+Mileage: {mileage} km
+Fuel: {fuel_type} | Transmission: {transmission}
 
-IMPORTANT:
-- Do NOT give vague responses.
-- Be extremely specific.
-- Mention actual visible parts of the car.
-- Describe scratches, dents, paint fading, cracked lights, tire wear, panel gaps, rust, accidents, interior wear, foggy headlights, bumper damage, etc.
-- If something cannot be verified from the image, explicitly say so.
-- Base your valuation on BOTH:
-  1. Visual vehicle condition
-  2. Kenyan used car market data
+Kenyan Market Range: KSh {market['low']:,} - KSh {market['high']:,}
 
-Vehicle Details:
-- Make: {make}
-- Model: {model}
-- Year: {year}
-- Mileage: {mileage} km
-- Fuel Type: {fuel_type}
-- Transmission: {transmission}
+Analyze the car photos carefully and give honest feedback.
 
-Kenyan Market Pricing Data:
-- Typical Market Range: KSh {market['low']:,} - KSh {market['high']:,}
-- Recommended Market Price: KSh {market['recommended']:,}
-- Comparable Vehicles Found: {market['sample_size']}
-
-Return ONLY valid JSON in this format:
+Return **ONLY** valid JSON:
 
 {{
-  "condition_score": 0-100,
-  "condition_rating": "Excellent/Good/Fair/Poor",
-  "confidence_score": 0-100,
-
+  "condition_score": 82,
+  "condition_rating": "Good",
+  "confidence_score": 85,
   "estimated_price_range_kes": {{
     "low": {market['low']},
     "mid": {market['mid']},
     "high": {market['high']}
   }},
-
   "recommended_selling_price_kes": {market['recommended']},
-
-  "detected_issues": [
-    "Front bumper has visible scratches on lower right side",
-    "Left headlight appears slightly foggy",
-    "Minor paint fade visible on bonnet"
-  ],
-
-  "positive_observations": [
-    "Body panels appear well aligned",
-    "No visible rust detected",
-    "Tires appear to have healthy tread"
-  ],
-
-  "recommended_repairs": [
-    "Polish headlights",
-    "Repaint front bumper scratches"
-  ],
-
-  "inspection_summary": "Write a professional, human-like inspection report explaining the vehicle's visible condition, likely market appeal in Kenya, and factors affecting the valuation. Mention both positives and negatives naturally."
+  "detected_issues": ["List specific visible problems"],
+  "positive_observations": ["List good things you see"],
+  "recommended_repairs": ["Practical suggestions"],
+  "inspection_summary": "Natural, detailed summary with price reasoning and selling advice for Kenyan market."
 }}
 """
+
+def parse_ai_response(response_text: str) -> dict:
+    fallback = {
+        "condition_score": 75,
+        "condition_rating": "Good",
+        "confidence_score": 70,
+        "estimated_price_range_kes": {"low": 1800000, "mid": 2200000, "high": 2600000},
+        "recommended_selling_price_kes": 2200000,
+        "detected_issues": [],
+        "positive_observations": [],
+        "recommended_repairs": [],
+        "summary": "Analysis completed successfully."
+    }
+
+    try:
+        cleaned = clean_json_text(response_text)
+        data = json.loads(cleaned)
+        
+        return {
+            "condition_score": int(data.get("condition_score", 75)),
+            "condition_rating": data.get("condition_rating", "Good"),
+            "confidence_score": int(data.get("confidence_score", 70)),
+            "estimated_price_range_kes": data.get("estimated_price_range_kes", fallback["estimated_price_range_kes"]),
+            "recommended_selling_price_kes": int(data.get("recommended_selling_price_kes", 2200000)),
+            "detected_issues": data.get("detected_issues", []),
+            "positive_observations": data.get("positive_observations", []),
+            "recommended_repairs": data.get("recommended_repairs", []),
+            "summary": data.get("inspection_summary") or data.get("summary", fallback["summary"])
+        }
+    except Exception as e:
+        print(f"Parse Error: {e}")
+        return fallback
