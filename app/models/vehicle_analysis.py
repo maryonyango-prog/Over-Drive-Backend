@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.database.database import db
+from app.database.database import db   
 
 class VehicleAnalysis(db.Model):
     __tablename__ = "vehicle_analysis"
@@ -30,5 +30,5 @@ class VehicleAnalysis(db.Model):
             "ai_penalty": self.ai_penalty,
             "ai_results": self.ai_results,
             "recommendation": self.recommendation,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }

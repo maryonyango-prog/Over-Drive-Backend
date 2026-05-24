@@ -1,74 +1,41 @@
-import os
-
-from app.database.database import db
-from app.models.vehicle import Vehicle
 from app.models.vehicle_image import VehicleImage
-from app.utils.file_utils import save_file
-
+from app.database.database import db
+from app.utils.file_utils import upload_to_cloudinary
 
 class MediaService:
-    @staticmethod
-    def save_vehicle_image(vehicle_id, file, image_type="general"):
-        # Check if vehicle exists
-        vehicle = Vehicle.query.get(vehicle_id)
 
-        if not vehicle:
+    @staticmethod
+    def save_vehicle_image(file, vehicle_id):
+        try:
+            if not file or not vehicle_id:
+                return {"success": False, "message": "Missing file or vehicle_id"}, 400
+
+            result = upload_to_cloudinary(file, folder="vehicles")
+            
+            if not result or not result.get("success"):
+                return {"success": False, "message": "Cloudinary upload failed"}, 500
+
+            vehicle_image = VehicleImage(
+                vehicle_id=vehicle_id,
+                image_url=result["url"],
+                public_id=result.get("public_id"),
+                filename=result.get("filename") or file.filename,
+                file_size=result.get("file_size") or 0,
+                image_type=getattr(file, 'content_type', "image/jpeg")
+            )
+            
+            db.session.add(vehicle_image)
+            db.session.commit()
+            
+            print(f"✅ Image saved to DB: {result['url']}")
+            
             return {
-                "success": False,
-                "message": "Vehicle not found"
-            }, 404
+                "success": True,
+                "message": "Image uploaded successfully",
+                "image": vehicle_image.to_dict()
+            }, 201
 
-        # Save file to uploads folder
-        file_data = save_file(file, "uploads")
-
-        # Create database record
-        image = VehicleImage(
-            vehicle_id=vehicle_id,
-            image_url=file_data["file_path"],   
-            filename=file_data["filename"],
-            file_size=file_data["file_size"],
-            image_type=image_type
-        )
-
-        db.session.add(image)
-        db.session.commit()
-
-        return {
-            "success": True,
-            "message": "Image uploaded successfully",
-            "data": image.to_dict()
-        }, 201
-
-    @staticmethod
-    def get_vehicle_images(vehicle_id):
-        images = VehicleImage.query.filter_by(
-            vehicle_id=vehicle_id
-        ).all()
-
-        return {
-            "success": True,
-            "data": [image.to_dict() for image in images]
-        }, 200
-
-    @staticmethod
-    def delete_image(image_id):
-        image = VehicleImage.query.get(image_id)
-
-        if not image:
-            return {
-                "success": False,
-                "message": "Image not found"
-            }, 404
-
-        # Delete file from disk
-        if image.image_url and os.path.exists(image.image_url):
-            os.remove(image.image_url)
-
-        # Delete database record
-        db.session.delete(image)
-        db.session.commit()
-
-        return {
-            "success": True,
-            "message": "Image deleted successfully"
-        }, 200
+        except Exception as e:
+            print(f" Error saving vehicle image: {str(e)}")
+            db.session.rollback()
+            return {"success": False, "message": str(e)}, 500

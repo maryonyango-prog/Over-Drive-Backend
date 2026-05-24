@@ -16,6 +16,10 @@ flask-sqlalchemy = "*"
 pyjwt = "*"
 anthropic = "*"
 flask-migrate = "*"
+cloudinary = "*"
+pillow = "*"
+pandas = "*"
+openpyxl = "*"
 
 [requires]
 python_version = "3*"

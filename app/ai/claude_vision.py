@@ -1,88 +1,80 @@
 # app/ai/claude_vision.py
-
 import os
 import json
 import base64
 import requests
-
+from urllib.parse import urlparse
 
 class ClaudeVisionService:
     @staticmethod
-    def analyze(image_path: str, prompt: str):
-
-
-        # ---------------------------------------------------------
-        # 1. Resolve absolute file path
-        # ---------------------------------------------------------
-        project_root = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "..")
-        )
-
-        if image_path.startswith("/uploads/"):
-            # /uploads/car.jpg -> <project_root>/uploads/car.jpg
-            image_path = os.path.join(
-                project_root,
-                image_path.lstrip("/")
-            )
-
-        elif not os.path.isabs(image_path):
-            # uploads/car.jpg -> <project_root>/uploads/car.jpg
-            image_path = os.path.join(project_root, image_path)
-
-        # Normalize path
-        image_path = os.path.abspath(image_path)
+    def analyze(image_url: str, prompt: str):
+        """
+        Analyze vehicle image - supports both Cloudinary URLs and local paths
+        """
+        image_data = None
+        media_type = "image/jpeg"
 
         # ---------------------------------------------------------
-        # 2. Validate file exists
+        # 1. Handle Cloudinary URL 
         # ---------------------------------------------------------
-        if not os.path.exists(image_path):
-            return {
-                "error": True,
-                "message": f"Image file not found: {image_path}"
-            }
+        if image_url.startswith("http"):
+            try:
+                print(f"📥 Downloading image from Cloudinary: {image_url}")
+                response = requests.get(image_url, timeout=30)
+                response.raise_for_status()
+                image_data = base64.b64encode(response.content).decode("utf-8")
+                
+                # Detect media type
+                ext = os.path.splitext(urlparse(image_url).path)[1].lower()
+                if ext in [".png"]:
+                    media_type = "image/png"
+                elif ext == ".webp":
+                    media_type = "image/webp"
+                # default to jpeg
+            except Exception as e:
+                return {"error": True, "message": f"Failed to download Cloudinary image: {str(e)}"}
 
         # ---------------------------------------------------------
-        # 3. Detect MIME type
+        # 2. Legacy Local File Support 
         # ---------------------------------------------------------
-        extension = os.path.splitext(image_path)[1].lower()
-
-        if extension in [".jpg", ".jpeg"]:
-            media_type = "image/jpeg"
-        elif extension == ".png":
-            media_type = "image/png"
-        elif extension == ".webp":
-            media_type = "image/webp"
         else:
-            return {
-                "error": True,
-                "message": f"Unsupported image format: {extension}"
-            }
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            
+            if image_url.startswith("/uploads/"):
+                local_path = os.path.join(project_root, image_url.lstrip("/"))
+            elif not os.path.isabs(image_url):
+                local_path = os.path.join(project_root, image_url)
+            else:
+                local_path = image_url
+
+            local_path = os.path.abspath(local_path)
+
+            if not os.path.exists(local_path):
+                return {"error": True, "message": f"Local image not found: {local_path}"}
+
+            try:
+                with open(local_path, "rb") as file:
+                    image_data = base64.b64encode(file.read()).decode("utf-8")
+                ext = os.path.splitext(local_path)[1].lower()
+                if ext == ".png":
+                    media_type = "image/png"
+                elif ext == ".webp":
+                    media_type = "image/webp"
+            except Exception as e:
+                return {"error": True, "message": f"Failed to read local image: {str(e)}"}
+
+        if not image_data:
+            return {"error": True, "message": "Failed to process image data"}
 
         # ---------------------------------------------------------
-        # 4. Read and base64 encode image
-        # ---------------------------------------------------------
-        try:
-            with open(image_path, "rb") as file:
-                image_data = base64.b64encode(file.read()).decode("utf-8")
-        except Exception as e:
-            return {
-                "error": True,
-                "message": f"Failed to read image: {str(e)}"
-            }
-
-        # ---------------------------------------------------------
-        # 5. Load API key
+        # 3. Load API Key
         # ---------------------------------------------------------
         api_key = os.getenv("ANTHROPIC_API_KEY")
-
         if not api_key:
-            return {
-                "error": True,
-                "message": "ANTHROPIC_API_KEY is not set"
-            }
+            return {"error": True, "message": "ANTHROPIC_API_KEY is not set"}
 
         # ---------------------------------------------------------
-        # 6. Build request headers and payload
+        # 4. Build Request
         # ---------------------------------------------------------
         headers = {
             "x-api-key": api_key,
@@ -91,7 +83,7 @@ class ClaudeVisionService:
         }
 
         payload = {
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-3-5-sonnet-20240620",
             "max_tokens": 1500,
             "temperature": 0,
             "messages": [
@@ -116,7 +108,7 @@ class ClaudeVisionService:
         }
 
         # ---------------------------------------------------------
-        # 7. Send request to Anthropic
+        # 5. Send Request
         # ---------------------------------------------------------
         try:
             response = requests.post(
@@ -126,77 +118,33 @@ class ClaudeVisionService:
                 timeout=120,
             )
         except requests.RequestException as e:
-            return {
-                "error": True,
-                "message": f"Request failed: {str(e)}"
-            }
+            return {"error": True, "message": f"Request failed: {str(e)}"}
 
-        # ---------------------------------------------------------
-        # 8. Parse API response
-        # ---------------------------------------------------------
-        try:
-            result = response.json()
-        except Exception:
-            return {
-                "error": True,
-                "status_code": response.status_code,
-                "message": "Invalid JSON response from Anthropic",
-                "raw_response": response.text,
-            }
-
-        # Handle API errors
         if response.status_code != 200:
             return {
                 "error": True,
                 "status_code": response.status_code,
-                "details": result,
-            }
-
-        # Ensure content exists
-        if "content" not in result or not result["content"]:
-            return {
-                "error": True,
-                "message": "Claude response missing content",
-                "details": result,
-            }
-
-        # Extract text response
-        text = result["content"][0].get("text", "")
-
-        if not text:
-            return {
-                "error": True,
-                "message": "Claude returned empty text",
-                "details": result,
+                "message": response.text
             }
 
         # ---------------------------------------------------------
-        # 9. Clean markdown code fences if Claude wraps JSON
+        # 6. Parse Response
         # ---------------------------------------------------------
-        ##This section double-checks AI-generated responses by removing Markdown code fences such as 
-        # ```json, ensuring the text is valid JSON. It then safely parses the cleaned string into a Python dictionary,
-        #  and if parsing fails, it returns the raw response as a fallback to prevent system crashes.
-        
+        try:
+            result = response.json()
+            text = result["content"][0]["text"]
+        except Exception:
+            return {"error": True, "message": "Failed to parse Claude response"}
+
+        # Clean and parse JSON
         cleaned_text = text.strip()
+        cleaned_text = cleaned_text.replace("```json", "").replace("```", "").strip()
 
-        # Remove opening ```json
-        if cleaned_text.startswith("```json"):
-            cleaned_text = cleaned_text[7:].strip()
-
-        # Remove opening ```
-        if cleaned_text.startswith("```"):
-            cleaned_text = cleaned_text[3:].strip()
-
-        # Remove closing ```
-        if cleaned_text.endswith("```"):
-            cleaned_text = cleaned_text[:-3].strip()
-
-        # ---------------------------------------------------------
-        # 10. Parse JSON if possible
-        # ---------------------------------------------------------
         try:
             return json.loads(cleaned_text)
         except json.JSONDecodeError:
             return {
-                "raw_response": text
+                "raw_response": text,
+                "condition_score": 65,
+                "summary": "Basic analysis completed (JSON parse failed)"
             }

@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Config:
 
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
@@ -12,21 +13,35 @@ class Config:
 
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
-    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    UPLOAD_FOLDER = os.path.join(BASE_DIR, os.getenv("UPLOAD_FOLDER", "uploads"))
+    CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+    CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+    CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
 
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
+
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
     @staticmethod
     def validate():
+
         missing = []
 
         if not Config.SQLALCHEMY_DATABASE_URI:
             missing.append("DATABASE_URL")
 
-        if not Config.OPENAI_API_KEY:
-            missing.append("OPENAI_API_KEY")
+        if not Config.ANTHROPIC_API_KEY:
+            missing.append("ANTHROPIC_API_KEY")
+
+        if not Config.CLOUDINARY_CLOUD_NAME:
+            missing.append("CLOUDINARY_CLOUD_NAME")
+
+        if not Config.CLOUDINARY_API_KEY:
+            missing.append("CLOUDINARY_API_KEY")
+
+        if not Config.CLOUDINARY_API_SECRET:
+            missing.append("CLOUDINARY_API_SECRET")
 
         if missing:
-            raise ValueError(f"Missing environment variables: {', '.join(missing)}")
+            raise ValueError(
+                f"Missing environment variables: {', '.join(missing)}"
+            )

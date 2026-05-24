@@ -1,5 +1,5 @@
+from datetime import datetime
 from app.database.database import db
-
 
 class Vehicle(db.Model):
     __tablename__ = "vehicle"
@@ -15,29 +15,27 @@ class Vehicle(db.Model):
 
     fuel_type = db.Column(db.String(50))
     transmission = db.Column(db.String(50))
-
     condition = db.Column(db.String(50))
     body_type = db.Column(db.String(50))
     engine_size = db.Column(db.Integer)
     color = db.Column(db.String(50))
     description = db.Column(db.Text)
 
-    previous_owners = db.Column(db.Integer, default=1)
-    service_history_available = db.Column(db.Boolean, default=False)
-    accident_history = db.Column(db.Boolean, default=False)
+    #  ADDED THIS LINE
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # RELATIONSHIPS (MISSING BEFORE — THIS FIXES YOUR ERRORS)
+    # Relationships
     images = db.relationship(
-        "VehicleImage",
-        backref="vehicle",
-        lazy=True,
+        "VehicleImage", 
+        backref="vehicle", 
+        lazy=True, 
         cascade="all, delete-orphan"
     )
-
+    
     analysis = db.relationship(
-        "VehicleAnalysis",
-        backref="vehicle",
-        uselist=False,
+        "VehicleAnalysis", 
+        backref="vehicle", 
+        uselist=False, 
         cascade="all, delete-orphan"
     )
 
@@ -57,7 +55,5 @@ class Vehicle(db.Model):
             "engine_size": self.engine_size,
             "color": self.color,
             "description": self.description,
-            "previous_owners": self.previous_owners,
-            "service_history_available": self.service_history_available,
-            "accident_history": self.accident_history,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

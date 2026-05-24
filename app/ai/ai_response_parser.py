@@ -19,7 +19,7 @@ def clean_json_text(text: str) -> str:
 
 def parse_ai_response(response_text: str) -> dict:
     """
-    Safely parse AI JSON response (Claude / OpenAI).
+    Safely parse AI JSON response (Claude).
     Always returns a normalized dictionary.
     """
 
