@@ -1,10 +1,7 @@
-from app.main import create_app
+from flask import Flask
 
-app = create_app()
+app = Flask(__name__)
 
-if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=True
-    )
+@app.route("/")
+def home():
+    return {"status": "ok"}
