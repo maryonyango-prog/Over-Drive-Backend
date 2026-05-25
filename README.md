@@ -18,6 +18,7 @@
 - **JWT Authentication**
 - **Claude AI Vision**
 - **Kenyan Market Pricing Engine**
+- **Cloudinary**
 
 ---
 
@@ -65,6 +66,7 @@ SECRET_KEY=your-super-secret-key-here
 JWT_SECRET_KEY=your-jwt-secret-key-here
 CORS_ORIGINS=http://localhost:5173,https://yourfrontend.com
 CLAUDE_API_KEY=sk-ant-...
+CLOUDINARY_API_KEY
 ```
 
 ### 4. Database Migrations
