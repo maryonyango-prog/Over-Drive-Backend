@@ -16,6 +16,9 @@ class VehicleAnalysis(db.Model):
 
     ai_results = db.Column(db.JSON)
     recommendation = db.Column(db.Text)
+    market_estimate = db.Column(db.Float)
+    confidence_score = db.Column(db.Integer)
+    comparable_count = db.Column(db.Integer)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -30,5 +33,8 @@ class VehicleAnalysis(db.Model):
             "ai_penalty": self.ai_penalty,
             "ai_results": self.ai_results,
             "recommendation": self.recommendation,
+            "market_estimate": self.market_estimate,
+            "confidence_score": self.confidence_score,
+            "comparable_count": self.comparable_count,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
