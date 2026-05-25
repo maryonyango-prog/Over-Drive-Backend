@@ -1,161 +1,178 @@
+```markdown
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=Over-Drive%20&descAlign=53&descAlignY=53&animation=fadeIn&fontSize=30&textBg=false"/>
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=Over-Drive&desc=AI%20Vehicle%20Valuation%20Platform&descAlign=53&descAlignY=53&animation=fadeIn&fontSize=30&textBg=false" alt="Over-Drive Banner"/>
 </p>
 
-AI Vehicle Valuation API built with Flask.
+<h3 align="center">AI-Powered Used Vehicle Valuation System</h3>
 
-This backend powers the Over-Drive platform, handling authentication, vehicle uploads, and AI-based vehicle image analysis.
-
----
-
-##  Tech Stack
-
-- Python 3
-- Flask
-- Flask SQLAlchemy
-- Flask Migrate
-- PostgreSQL (Supabase / hosted DB)
-- JWT Authentication
-- Flask-CORS
-- AI Vision Service (Claude / external AI model)
+<p align="center">
+  A robust Flask backend that powers intelligent vehicle valuation using AI image analysis and real Kenyan market data.
+</p>
 
 ---
 
-##  Project Structure
+## Tech Stack
+
+- **Python 3.10+**
+- **Flask** + **Flask-SQLAlchemy** + **Flask-Migrate**
+- **PostgreSQL** (Supabase)
+- **JWT Authentication**
+- **Claude AI Vision**
+- **Kenyan Market Pricing Engine**
+
+---
+
+## Project Structure
+
+```bash
 over-drive-backend/
-│
 ├── app/
-│ ├── models/
-│ ├── routes/
-│ ├── services/
-│ ├── utils/
-│ └── __init__.py
-│
+│   ├── models/          # Database models
+│   ├── routes/          # API routes
+│   ├── services/        # Business logic (AI + Valuation)
+│   ├── ai/              # Claude prompts & services
+│   ├── utils/           # Helpers
+│   └── __init__.py
 ├── migrations/
 ├── main.py
+├── start_app.py
 ├── requirements.txt
 └── .env
-
+```
 
 ---
 
 ## Setup Instructions
 
-### 1. Clone the repository
+### 1. Clone & Setup
 ```bash
 git clone https://github.com/your-username/over-drive-backend.git
 cd over-drive-backend
 
 python -m venv venv
-source venv/bin/activate   # Mac/Linux
-venv\Scripts\activate      # Windows
-
-pipenv install
-pipenv shell
+source venv/bin/activate        # Linux/Mac
+# venv\Scripts\activate         # Windows
 ```
-### Create .env file
+
+### 2. Install Dependencies
 ```bash
-DATABASE_URL=your_postgres_connection_string
-SECRET_KEY=your_secret_key
-JWT_SECRET_KEY=your_jwt_secret
-CORS_ORIGINS=http://localhost:5173
+pip install -r requirements.txt
 ```
 
-### Run database migrations
+### 3. Environment Variables (`.env`)
+```env
+DATABASE_URL=postgresql://user:password@host:port/dbname
+SECRET_KEY=your-super-secret-key-here
+JWT_SECRET_KEY=your-jwt-secret-key-here
+CORS_ORIGINS=http://localhost:5173,https://yourfrontend.com
+CLAUDE_API_KEY=sk-ant-...
+```
+
+### 4. Database Migrations
+```bash
 flask db init
-flask db migrate -m "init"
-flask db upgrade head
+flask db migrate -m "Initial migration"
+flask db upgrade
+```
 
-### Start Server
-cd start_app.py
-flask run
+### 5. Run Server
+```bash
+python main.py
+# OR
+python start_app.py
+```
 
-### Server runs at
-http://127.0.0.1:5000
+Server runs at: `http://127.0.0.1:5000`
+
+---
+
+## API Documentation
 
 ### Authentication
-JWT authentication is used.
+- **JWT Bearer Token**
+- Header: `Authorization: Bearer <your-token>`
+- Store token in frontend: `localStorage.setItem('overdrive_token', token)`
 
-### Header format
-Authorization: Bearer <token>
+### Main Endpoints
 
-### Frontend token storage
-localStorage key: overdrive_token
+| Method | Endpoint                                   | Description                        |
+|--------|--------------------------------------------|------------------------------------|
+| POST   | `/api/auth/register`                       | User registration                  |
+| POST   | `/api/auth/login`                          | User login                         |
+| GET    | `/api/vehicle/<int:vehicle_id>`            | Get vehicle details                |
+| POST   | `/api/vehicle/<int:vehicle_id>/analyze`    | Trigger AI Analysis & Valuation    |
+| GET    | `/api/vehicle/<int:vehicle_id>/valuation`  | Get complete valuation report      |
+| POST   | `/api/vehicle/<int:vehicle_id>/upload_image` | Upload vehicle image            |
+| GET    | `/media/vehicles/<int:vehicle_id>/images`  | Get all images for a vehicle       |
+| GET    | `/health`                                  | Health check                       |
 
-### AI Vehicle Analysis Flow
-1.User uploads vehicle images
-2.Backend validates request
-3.Images sent to AI service
-4.AI returns:
-----Condition score
-----Detected issues
-----Summary report
-5.API returns structured JSON response
 
-### API Endpoints
-AUTH
-```bash
-POST /api/auth/register
-POST /apia/auth/login
-```
-VEHICLES
-Get Vehicle Details
-```bash
-GET /api/vehicle/<vehicle_id>
-```
+---
 
-Analyze Vehicle(AI)
-```bash
-POST /api/vehicle/<vehicle_id>/analyze
-```
+## AI Vehicle Analysis Flow
 
-Get Vehicle Valuation
-```bash
-GET /api/vehicle/vehicle<vehicle_id>/valuation
-```
+1. User uploads vehicle images
+2. System sends images to Claude Vision
+3. AI returns condition score, issues, positives, and **buyer recommendation**
+4. Market valuation is calculated using Kenyan data
+5. Full report is saved and returned
 
-IMAGES
-Upload Vehicle Image
-```bash
-POST /api/vehicle/<vehicle_id>/upload_image
-```
+---
 
-Get Vehicle Images
-```bash
-GET /media/vehicles/<vehicle_id>/images
-```
+## Deployment Instructions
 
-Serve Uploaded Vehicle File
-```bash
-GET /api/vehicle/uploads/<filename>
-```
+### Option 1: Railway / Render (Recommended)
 
-Delete Image
-```bash
-DELETE /media/images/<image_id>
+1. Push code to GitHub
+2. Connect repository to Railway or Render
+3. Add environment variables in dashboard
+4. Set start command:
+   ```bash
+   gunicorn main:app
+   ```
+5. Add PostgreSQL database (Railway/Supabase)
+
+### Option 2: Docker
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 ```
 
-GENERAL MEDIA ACCESS
-Serve File
+### Option 3: Manual VPS
 ```bash
-GET /uploads/<filename>
+sudo apt update && sudo apt install nginx supervisor
+# Configure gunicorn + nginx
 ```
 
-Upload Vehicle Image
-```bash
-POST /media/vehicles/<vehicle_id>/upload
-```
+---
 
-System Routes
-Root
-```bash
-GET /
-```
+## Environment Variables Reference
 
-Health Check
-```bash
-GET /health
-```
+| Variable            | Purpose                            |
+|---------------------|------------------------------------|
+| `DATABASE_URL`      | PostgreSQL connection              |
+| `SECRET_KEY`        | Flask session security             |
+| `JWT_SECRET_KEY`    | JWT token signing                  |
+| `CORS_ORIGINS`      | Allowed frontend domains           |
+| `CLAUDE_API_KEY`    | Anthropic API key                  |
 
+---
 
+## Contributing
 
+1. Fork the repo
+2. Create feature branch
+3. Make changes + tests
+4. Submit Pull Request
+
+---
+
+**Built for the Kenyan used car market with Determination**
+
+---

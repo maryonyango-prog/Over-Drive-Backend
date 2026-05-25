@@ -40,10 +40,10 @@ class ValuationService:
                 MarketListing.year.between(year - 12, year + 1)
             ).order_by(MarketListing.year.desc(), MarketListing.price.desc()).limit(150).all()
 
-            print(f"✅ FOUND: {len(comparables)} comparables")
+            print(f" FOUND: {len(comparables)} comparables")
 
             if len(comparables) < 15:
-                print("⚠️ Widening search...")
+                print(" Widening search...")
                 comparables = query.filter(
                     MarketListing.year.between(year - 18, year + 3)
                 ).limit(100).all()
@@ -51,7 +51,7 @@ class ValuationService:
             return comparables
 
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f" Error: {e}")
             traceback.print_exc()
             return []
 
@@ -115,7 +115,7 @@ class ValuationService:
                 ]
             }
         except Exception as e:
-            print(f"❌ CRITICAL ERROR: {e}")
+            print(f"CRITICAL ERROR: {e}")
             traceback.print_exc()
             fallback = getattr(vehicle, 'asking_price', 2400000) or 2400000
             return {

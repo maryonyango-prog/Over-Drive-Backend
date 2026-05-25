@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, text
 from app.config import Config
 
-print("🚀 Starting batched import (safer for Supabase)...")
+print(" Starting batched import (safer for Supabase)...")
 
 df = pd.read_csv("cleaned_jiji_listings.csv")
 print(f"Loaded {len(df)} records")
@@ -50,9 +50,9 @@ with engine.connect() as conn:
             """), batch)
             conn.commit()
             total += len(batch)
-            print(f"  ✅ Batch inserted - Total so far: {total}")
+            print(f"   Batch inserted - Total so far: {total}")
 
-print(f"\n🎉 IMPORT FINISHED! Total records: {total}")
+print(f"\n IMPORT FINISHED! Total records: {total}")
 
 # Final stats
 with engine.connect() as conn:
@@ -60,7 +60,7 @@ with engine.connect() as conn:
     toyota = conn.execute(text("SELECT COUNT(*) FROM market_listings WHERE make ILIKE '%toyota%'")).scalar()
     corolla = conn.execute(text("SELECT COUNT(*) FROM market_listings WHERE model ILIKE '%corolla%'")).scalar()
     
-    print(f"\n📊 Stats:")
+    print(f"\n Stats:")
     print(f"Total: {total_count}")
     print(f"Toyota: {toyota}")
     print(f"Corolla: {corolla}")

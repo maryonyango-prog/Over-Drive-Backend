@@ -27,7 +27,7 @@ class MediaService:
             db.session.add(vehicle_image)
             db.session.commit()
             
-            print(f"✅ Image saved to DB: {result['url']}")
+            print(f" Image saved to DB: {result['url']}")
             
             return {
                 "success": True,

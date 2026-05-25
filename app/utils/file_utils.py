@@ -52,7 +52,7 @@ def upload_to_cloudinary(file, folder="vehicles"):
             resource_type="image"
         )
 
-        print(f"✅ Uploaded to Cloudinary: {upload_result.get('secure_url')}")
+        print(f" Uploaded to Cloudinary: {upload_result.get('secure_url')}")
 
         return {
             "success": True,

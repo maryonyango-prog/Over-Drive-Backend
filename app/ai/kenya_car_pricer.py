@@ -13,11 +13,11 @@ class KenyaCarPricer:
             file_path = Path(__file__).parent.parent / "data" / "JijiCarsRawDataFinal.xlsx"
             
             if not file_path.exists():
-                print(f"⚠️ File not found: {file_path}")
+                print(f" File not found: {file_path}")
                 return
                 
             self.df = pd.read_excel(file_path)
-            print(f"✅ Successfully loaded {len(self.df):,} real Kenyan car records from Jiji")
+            print(f" Successfully loaded {len(self.df):,} real Kenyan car records from Jiji")
 
             # Clean price and year columns
             self.df['Price_clean'] = self.df['Price'].astype(str).str.replace(r'[^\d]', '', regex=True)
@@ -25,7 +25,7 @@ class KenyaCarPricer:
             self.df['YOM'] = pd.to_numeric(self.df['YOM'], errors='coerce')
             
         except Exception as e:
-            print(f"❌ Failed to load car data: {e}")
+            print(f" Failed to load car data: {e}")
             self.df = None
 
     def get_market_price(self, make, model, year, mileage=0):
