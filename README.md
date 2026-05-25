@@ -1,7 +1,4 @@
-```markdown
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=Over-Drive&desc=AI%20Vehicle%20Valuation%20Platform&descAlign=53&descAlignY=53&animation=fadeIn&fontSize=30&textBg=false" alt="Over-Drive Banner"/>
-</p>
+https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=OverDrive%20API
 
 <h3 align="center">AI-Powered Used Vehicle Valuation System</h3>
 
