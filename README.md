@@ -163,14 +163,18 @@ sudo apt update && sudo apt install nginx supervisor
 
 ---
 
-## Contributing
+# Contributors
 
-1. Fork the repo
-2. Create feature branch
-3. Make changes + tests
-4. Submit Pull Request
+This project was developed by:
+
+1. Mary Onyango
+2. Nelson Romeo
+3. Noah Kemboi
+4. Jelagat Asumpta
+5. Angella Musamali
 
 ---
+
 
 **Built for the Kenyan used car market with Determination**
 
