@@ -1,9 +1,16 @@
 # app/services/valuation_service.py
 from statistics import median
-from app.models.market_listing import MarketListing
-from app.database.database import db
 import traceback
-import re
+from app.database.database import db
+
+# Safe import for MarketListing
+try:
+    from app.models.market_listing import MarketListing
+    MARKET_LISTING_AVAILABLE = True
+except ImportError:
+    MarketListing = None
+    MARKET_LISTING_AVAILABLE = False
+    print("  MarketListing model not found. Using fallback valuation logic.")
 
 
 class ValuationService:
@@ -11,15 +18,19 @@ class ValuationService:
 
     @staticmethod
     def get_comparables(vehicle):
+        if not MARKET_LISTING_AVAILABLE:
+            print("  MarketListing table not available. Returning empty comparables.")
+            return []
+
         try:
             make = (getattr(vehicle, 'make', '') or "").strip().lower()
             model = (getattr(vehicle, 'model', '') or "").strip().lower()
             year = getattr(vehicle, 'year', 2024)
 
-            print("🔍 Searching comparables:")
-            print(f"  MAKE: {make}")
-            print(f"  MODEL: {model}")
-            print(f"  YEAR: {year}")
+            print(" Searching comparables:")
+            print(f" MAKE: {make}")
+            print(f" MODEL: {model}")
+            print(f" YEAR: {year}")
 
             query = MarketListing.query.filter(
                 MarketListing.make.ilike(f"%{make}%")
@@ -30,8 +41,8 @@ class ValuationService:
                     db.or_(
                         MarketListing.model.ilike("%corolla%"),
                         MarketListing.model.ilike("%axio%"),
-                        MarketListing.title.ilike("%corolla%"),
-                        MarketListing.title.ilike("%axio%")
+                        MarketListing.title.ilike("%corolla%") if hasattr(MarketListing, 'title') else False,
+                        MarketListing.title.ilike("%axio%") if hasattr(MarketListing, 'title') else False
                     )
                 )
 
@@ -51,7 +62,7 @@ class ValuationService:
             return comparables
 
         except Exception as e:
-            print(f" Error: {e}")
+            print(f" Error in get_comparables: {e}")
             traceback.print_exc()
             return []
 
@@ -87,7 +98,7 @@ class ValuationService:
             comparables = ValuationService.get_comparables(vehicle)
             market_average = ValuationService.calculate_market_average(comparables)
 
-            # Better fallback for new cars
+            # Fallback for new cars or no data
             if market_average < 900000:
                 market_average = getattr(vehicle, 'asking_price', 2400000) or 2400000
 
@@ -114,8 +125,9 @@ class ValuationService:
                     } for c in comparables[:6]
                 ]
             }
+
         except Exception as e:
-            print(f"CRITICAL ERROR: {e}")
+            print(f"CRITICAL ERROR in valuation: {e}")
             traceback.print_exc()
             fallback = getattr(vehicle, 'asking_price', 2400000) or 2400000
             return {
