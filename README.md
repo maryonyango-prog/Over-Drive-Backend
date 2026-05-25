@@ -1,4 +1,6 @@
-<p align="center">https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=OverDrive%20API&textBg=false</p>
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=OverDrive%20API%&descAlign=53&descAlignY=53&animation=fadeIn&fontSize=30&textBg=false"/>
+</p>
 
 <h3 align="center">AI-Powered Used Vehicle Valuation System</h3>
 
